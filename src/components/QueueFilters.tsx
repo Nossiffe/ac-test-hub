@@ -1,4 +1,4 @@
-import type { QueueFilters as Filters, SortKey, StatusFilter } from '../lib/queue';
+import type { DomainOptionGroup, QueueFilters as Filters, SortKey, StatusFilter } from '../lib/queue';
 import type { ChangeKind } from '../lib/types';
 import { KIND_TEXT, STATUS_TEXT } from '../format';
 
@@ -9,6 +9,7 @@ interface Props {
   onSortChange: (sort: SortKey) => void;
   shown: number;
   total: number;
+  domains: DomainOptionGroup[];
 }
 
 const STATUS_OPTIONS: Array<[StatusFilter, string]> = [
@@ -33,7 +34,7 @@ const SORT_OPTIONS: Array<[SortKey, string]> = [
   ['quiet', 'Least discussed'],
 ];
 
-export function QueueFilters({ filters, sort, onFiltersChange, onSortChange, shown, total }: Props) {
+export function QueueFilters({ filters, sort, onFiltersChange, onSortChange, shown, total, domains }: Props) {
   const set = <K extends keyof Filters>(key: K, value: Filters[K]) => onFiltersChange({ ...filters, [key]: value });
 
   return (
@@ -71,6 +72,22 @@ export function QueueFilters({ filters, sort, onFiltersChange, onSortChange, sho
         </label>
       </div>
 
+      <label className="field">
+        <span className="field__label">Part of the game</span>
+        <select value={filters.domain} onChange={(event) => set('domain', event.target.value)}>
+          <option value="">Any</option>
+          {domains.map((group) => (
+            <optgroup key={group.label} label={group.label}>
+              {group.options.map((option) => (
+                <option key={option.value} value={option.value}>
+                  {option.label} ({option.count})
+                </option>
+              ))}
+            </optgroup>
+          ))}
+        </select>
+      </label>
+
       <fieldset className="segmented">
         <legend className="field__label">Changes</legend>
         {KIND_OPTIONS.map(([value, label]) => (
@@ -89,6 +106,10 @@ export function QueueFilters({ filters, sort, onFiltersChange, onSortChange, sho
         <label className="toggle">
           <input type="checkbox" checked={filters.withInstructionsOnly} onChange={(event) => set('withInstructionsOnly', event.target.checked)} />
           <span>Has test steps</span>
+        </label>
+        <label className="toggle">
+          <input type="checkbox" checked={filters.unreportedOnly} onChange={(event) => set('unreportedOnly', event.target.checked)} />
+          <span>No report yet</span>
         </label>
       </div>
 

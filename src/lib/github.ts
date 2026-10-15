@@ -1,4 +1,5 @@
 import type { ChangedFile } from './classify';
+import type { IssueComment } from './reports';
 import type { SearchItem } from './transform';
 
 export type FetchLike = (url: string, init?: { headers?: Record<string, string> }) => Promise<{
@@ -11,6 +12,8 @@ export type FetchLike = (url: string, init?: { headers?: Record<string, string> 
 
 export interface GitHubClient {
   get<T>(path: string): Promise<T>;
+  /** Requests left in the REST budget, from the last non-search response. Null before the first one. */
+  remaining(): number | null;
 }
 
 export class GitHubError extends Error {
@@ -32,13 +35,17 @@ export function createClient(token: string | undefined, fetchImpl: FetchLike = f
     'User-Agent': 'ac-test-hub',
   };
   if (token) headers.Authorization = `Bearer ${token}`;
+  let remaining: number | null = null;
 
   return {
+    remaining: () => remaining,
     async get<T>(path: string): Promise<T> {
       const response = await fetchImpl(`${API}${path}`, { headers });
+      // The search API has its own, separate budget.
+      const left = response.headers.get('x-ratelimit-remaining');
+      if (left !== null && !path.startsWith('/search/')) remaining = Number(left);
       if (!response.ok) {
-        const remaining = response.headers.get('x-ratelimit-remaining');
-        const hint = remaining === '0' ? ' (rate limit reached: set GITHUB_TOKEN)' : '';
+        const hint = left === '0' ? ' (rate limit reached: set GITHUB_TOKEN)' : '';
         const detail = (await response.text()).slice(0, 200);
         throw new GitHubError(`GET ${path} failed with ${response.status}${hint}: ${detail}`, response.status);
       }
@@ -72,6 +79,23 @@ export async function listPullFiles(client: GitHubClient, repository: string, nu
     if (batch.length < PER_PAGE) break;
   }
   return files;
+}
+
+/** Issue comments of a pull request, where test reports are posted. */
+export async function listComments(client: GitHubClient, repository: string, number: number): Promise<IssueComment[]> {
+  const comments: IssueComment[] = [];
+  for (let page = 1; page <= 10; page++) {
+    const batch = await client.get<IssueComment[]>(`/repos/${repository}/issues/${number}/comments?per_page=${PER_PAGE}&page=${page}`);
+    comments.push(...batch.map(({ user, body, html_url, created_at }) => ({ user, body, html_url, created_at })));
+    if (batch.length < PER_PAGE) break;
+  }
+  return comments;
+}
+
+/** Label names of an issue (or a PR: the issues endpoint serves both). */
+export async function getIssueLabels(client: GitHubClient, repository: string, number: number): Promise<string[]> {
+  const issue = await client.get<{ labels: Array<{ name: string } | string> }>(`/repos/${repository}/issues/${number}`);
+  return issue.labels.map((label) => (typeof label === 'string' ? label : label.name));
 }
 
 /** Runs `task` over `items` with at most `limit` calls in flight, keeping the input order. */

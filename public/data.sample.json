@@ -1,4 +1,5 @@
 {
+  "version": 2,
   "generatedAt": "2026-10-15T20:00:00.000Z",
   "repository": "azerothcore/azerothcore-wotlk",
   "pulls": [
@@ -40,7 +41,16 @@
         "needsMoreTesting": true,
         "testedByAuthor": true,
         "testedByOthers": false
-      }
+      },
+      "area": {
+        "group": "DB",
+        "topic": "SAI"
+      },
+      "topics": [
+        "61-64",
+        "Quest"
+      ],
+      "reports": []
     },
     {
       "number": 90002,
@@ -82,7 +92,25 @@
         "needsMoreTesting": true,
         "testedByAuthor": true,
         "testedByOthers": false
-      }
+      },
+      "area": {
+        "group": "Scripts",
+        "topic": "Spells"
+      },
+      "topics": [
+        "Class - Death Knight",
+        "80"
+      ],
+      "reports": [
+        {
+          "author": "stormrider",
+          "url": "https://github.com/azerothcore/azerothcore-wotlk/pull/90002#issuecomment-9000220",
+          "createdAt": "2026-10-13T20:00:00.000Z",
+          "kind": "in-game",
+          "result": "works",
+          "fromHub": false
+        }
+      ]
     },
     {
       "number": 90003,
@@ -121,7 +149,13 @@
         "needsMoreTesting": false,
         "testedByAuthor": false,
         "testedByOthers": false
-      }
+      },
+      "area": {
+        "group": "DB",
+        "topic": "Spell"
+      },
+      "topics": [],
+      "reports": []
     },
     {
       "number": 90004,
@@ -161,7 +195,33 @@
         "needsMoreTesting": false,
         "testedByAuthor": false,
         "testedByOthers": false
-      }
+      },
+      "area": {
+        "group": "Core",
+        "topic": "Instance"
+      },
+      "topics": [
+        "Instance - Dungeon - Vanilla",
+        "50-59"
+      ],
+      "reports": [
+        {
+          "author": "quelfrost",
+          "url": "https://github.com/azerothcore/azerothcore-wotlk/pull/90004#issuecomment-9000450",
+          "createdAt": "2026-10-10T20:00:00.000Z",
+          "kind": "in-game",
+          "result": "broken",
+          "fromHub": false
+        },
+        {
+          "author": "snifftracker",
+          "url": "https://github.com/azerothcore/azerothcore-wotlk/pull/90004#issuecomment-9000440",
+          "createdAt": "2026-10-11T20:00:00.000Z",
+          "kind": "sniffs",
+          "result": "unknown",
+          "fromHub": false
+        }
+      ]
     },
     {
       "number": 90005,
@@ -197,7 +257,13 @@
         "needsMoreTesting": false,
         "testedByAuthor": false,
         "testedByOthers": false
-      }
+      },
+      "area": {
+        "group": "DB",
+        "topic": "SAI"
+      },
+      "topics": [],
+      "reports": []
     },
     {
       "number": 90006,
@@ -228,7 +294,13 @@
         "needsMoreTesting": false,
         "testedByAuthor": false,
         "testedByOthers": false
-      }
+      },
+      "area": {
+        "group": "Core",
+        "topic": "Commands"
+      },
+      "topics": [],
+      "reports": []
     },
     {
       "number": 90007,
@@ -268,7 +340,15 @@
         "needsMoreTesting": true,
         "testedByAuthor": true,
         "testedByOthers": false
-      }
+      },
+      "area": {
+        "group": "DB",
+        "topic": "Loot"
+      },
+      "topics": [
+        "Loot"
+      ],
+      "reports": []
     },
     {
       "number": 90008,
@@ -303,7 +383,30 @@
         "needsMoreTesting": true,
         "testedByAuthor": true,
         "testedByOthers": false
-      }
+      },
+      "area": {
+        "group": "Core",
+        "topic": "Movement"
+      },
+      "topics": [],
+      "reports": [
+        {
+          "author": "stormrider",
+          "url": "https://github.com/azerothcore/azerothcore-wotlk/pull/90008#issuecomment-9000880",
+          "createdAt": "2026-10-07T20:00:00.000Z",
+          "kind": "in-game",
+          "result": "works",
+          "fromHub": false
+        },
+        {
+          "author": "oakenshield",
+          "url": "https://github.com/azerothcore/azerothcore-wotlk/pull/90008#issuecomment-9000870",
+          "createdAt": "2026-10-08T20:00:00.000Z",
+          "kind": "in-game",
+          "result": "works",
+          "fromHub": false
+        }
+      ]
     },
     {
       "number": 90009,
@@ -333,7 +436,13 @@
         "needsMoreTesting": false,
         "testedByAuthor": false,
         "testedByOthers": false
-      }
+      },
+      "area": {
+        "group": "CI",
+        "topic": null
+      },
+      "topics": [],
+      "reports": []
     },
     {
       "number": 90010,
@@ -373,7 +482,13 @@
         "needsMoreTesting": true,
         "testedByAuthor": true,
         "testedByOthers": false
-      }
+      },
+      "area": {
+        "group": "DB",
+        "topic": "Creature"
+      },
+      "topics": [],
+      "reports": []
     },
     {
       "number": 90011,
@@ -407,7 +522,13 @@
         "needsMoreTesting": true,
         "testedByAuthor": true,
         "testedByOthers": false
-      }
+      },
+      "area": {
+        "group": "Scripts",
+        "topic": "Instance"
+      },
+      "topics": [],
+      "reports": null
     },
     {
       "number": 90012,
@@ -452,7 +573,16 @@
         "needsMoreTesting": false,
         "testedByAuthor": false,
         "testedByOthers": false
-      }
+      },
+      "area": {
+        "group": "DB",
+        "topic": "Quest"
+      },
+      "topics": [
+        "71-74",
+        "Quest"
+      ],
+      "reports": []
     }
   ]
 }

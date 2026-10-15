@@ -1,4 +1,5 @@
 import { TESTABLE_STATUSES } from './config';
+import { compareDomainLabels, domainGroup, type DomainGroup } from './domain';
 import type { ChangeKind, PullStatus, PullSummary } from './types';
 
 export type StatusFilter = 'testable' | 'all' | PullStatus;
@@ -9,6 +10,10 @@ export interface QueueFilters {
   kind: 'all' | ChangeKind;
   withInstructionsOnly: boolean;
   testersWantedOnly: boolean;
+  /** Only PRs nobody has reported on yet. */
+  unreportedOnly: boolean;
+  /** `''` for any, `topic:<label>` for a linked issue label, `area:<Group>` or `area:<Group>/<Topic>` for the title scope. */
+  domain: string;
   query: string;
 }
 
@@ -17,8 +22,71 @@ export const DEFAULT_FILTERS: QueueFilters = {
   kind: 'all',
   withInstructionsOnly: false,
   testersWantedOnly: false,
+  unreportedOnly: false,
+  domain: '',
   query: '',
 };
+
+/** Number of test reports, 0 when the comments could not be read. */
+export const reportCount = (pull: PullSummary) => pull.reports?.length ?? 0;
+
+const areaKey = (pull: PullSummary) => (pull.area ? `${pull.area.group}${pull.area.topic ? `/${pull.area.topic}` : ''}` : null);
+
+export function matchesDomain(pull: PullSummary, domain: string): boolean {
+  if (!domain) return true;
+  if (domain.startsWith('topic:')) return pull.topics.includes(domain.slice('topic:'.length));
+  if (domain.startsWith('area:')) {
+    const wanted = domain.slice('area:'.length);
+    const key = areaKey(pull);
+    return key !== null && (key === wanted || key.startsWith(`${wanted}/`));
+  }
+  return true;
+}
+
+export interface DomainOption {
+  value: string;
+  label: string;
+  count: number;
+}
+
+export type DomainOptionGroup = { label: DomainGroup | 'Code area'; options: DomainOption[] };
+
+/**
+ * The domain filter's choices, built from the PRs at hand, with how many PRs
+ * each one keeps. `selected` stays in the list even when no PR matches it
+ * any more, so the select never shows a choice that isn't the active one.
+ */
+export function domainOptions(pulls: readonly PullSummary[], selected = ''): DomainOptionGroup[] {
+  const topics = new Map<string, number>();
+  const areas = new Map<string, number>();
+  if (selected.startsWith('topic:')) topics.set(selected.slice('topic:'.length), 0);
+  if (selected.startsWith('area:')) areas.set(selected.slice('area:'.length), 0);
+  for (const pull of pulls) {
+    for (const topic of pull.topics) topics.set(topic, (topics.get(topic) ?? 0) + 1);
+    if (pull.area) {
+      areas.set(pull.area.group, (areas.get(pull.area.group) ?? 0) + 1);
+      if (pull.area.topic) {
+        const key = `${pull.area.group}/${pull.area.topic}`;
+        areas.set(key, (areas.get(key) ?? 0) + 1);
+      }
+    }
+  }
+
+  const groups: DomainOptionGroup[] = (['Class', 'Instance', 'Level', 'Topic'] as const).map((group) => ({
+    label: group,
+    options: [...topics]
+      .filter(([label]) => domainGroup(label) === group)
+      .sort(([a], [b]) => compareDomainLabels(a, b))
+      .map(([label, count]) => ({ value: `topic:${label}`, label: label.replace(/^(Class|Instance) - /, ''), count })),
+  }));
+  groups.push({
+    label: 'Code area',
+    options: [...areas]
+      .sort(([a], [b]) => a.localeCompare(b))
+      .map(([key, count]) => ({ value: `area:${key}`, label: key.includes('/') ? key : `${key} (all)`, count })),
+  });
+  return groups.filter((group) => group.options.length > 0);
+}
 
 /** Labelled "Waiting to be Tested", or the author ticked "requires further testing". */
 export function wantsTesters(pull: PullSummary): boolean {
@@ -32,7 +100,8 @@ function matchesQuery(pull: PullSummary, query: string): boolean {
     String(pull.number).includes(q) ||
     pull.title.toLowerCase().includes(q) ||
     pull.author.login.toLowerCase().includes(q) ||
-    pull.labels.some((label) => label.toLowerCase().includes(q))
+    pull.labels.some((label) => label.toLowerCase().includes(q)) ||
+    pull.topics.some((topic) => topic.toLowerCase().includes(q))
   );
 }
 
@@ -43,6 +112,8 @@ export function filterPulls(pulls: readonly PullSummary[], filters: QueueFilters
     if (filters.kind !== 'all' && pull.kind !== filters.kind) return false;
     if (filters.withInstructionsOnly && !pull.testing.instructions && !pull.testing.reproStepsInIssue) return false;
     if (filters.testersWantedOnly && !wantsTesters(pull)) return false;
+    if (filters.unreportedOnly && reportCount(pull) > 0) return false;
+    if (!matchesDomain(pull, filters.domain)) return false;
     return matchesQuery(pull, filters.query);
   });
 }
@@ -58,12 +129,17 @@ const STATUS_RANK: Record<PullStatus, number> = {
   wip: 7,
 };
 
-/** Lower is more urgent: labelled first, then PRs asking for testers, then the rest. */
+/**
+ * Lower is more urgent: labelled first, then PRs asking for testers. Within
+ * each, PRs nobody has reported on come before those already tested, and PRs
+ * with test steps before those without.
+ */
 export function priorityRank(pull: PullSummary): number {
   const base = STATUS_RANK[pull.status] * 10;
   const testers = wantsTesters(pull) ? 0 : 5;
+  const reported = reportCount(pull) > 0 ? 2 : 0;
   const steps = pull.testing.instructions || pull.testing.reproStepsInIssue ? 0 : 1;
-  return base + testers + steps;
+  return base + testers + reported + steps;
 }
 
 const time = (iso: string) => new Date(iso).getTime();

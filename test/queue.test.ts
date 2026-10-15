@@ -53,3 +53,20 @@ describe('sortPulls', () => {
     expect(sortPulls(pulls, 'quiet').map((p) => p.number)[0]).toBe(4);
   });
 });
+
+describe('test reports in the queue', () => {
+  const report = { author: 'tester', url: '', createdAt: '2026-10-10T00:00:00Z', kind: 'in-game' as const, result: 'works' as const, fromHub: false };
+  const pulls = [
+    makePull({ number: 1, status: 'waiting', reports: [report], createdAt: '2026-09-01T00:00:00Z' }),
+    makePull({ number: 2, status: 'waiting', reports: [], createdAt: '2026-10-01T00:00:00Z' }),
+    makePull({ number: 3, status: 'waiting', reports: null, createdAt: '2026-10-02T00:00:00Z' }),
+  ];
+
+  it('puts PRs nobody reported on before those already tested', () => {
+    expect(sortPulls(pulls, 'priority').map((p) => p.number)).toEqual([2, 3, 1]);
+  });
+
+  it('can show only PRs without a report', () => {
+    expect(filterPulls(pulls, { ...DEFAULT_FILTERS, unreportedOnly: true }).map((p) => p.number)).toEqual([2, 3]);
+  });
+});

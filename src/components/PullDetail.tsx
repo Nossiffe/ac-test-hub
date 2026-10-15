@@ -4,7 +4,7 @@ import { testSteps } from '../lib/commands';
 import { wantsTesters } from '../lib/queue';
 import type { ServerSetup } from '../lib/report';
 import type { PullSummary } from '../lib/types';
-import { KIND_HINT, KIND_TEXT, STATUS_TEXT, timeAgo } from '../format';
+import { areaText, KIND_HINT, KIND_TEXT, REPORT_KIND_TEXT, REPORT_RESULT_TEXT, STATUS_TEXT, timeAgo } from '../format';
 import { CopyButton } from './CopyButton';
 import { Markdown } from './Markdown';
 import { ReportForm } from './ReportForm';
@@ -36,9 +36,36 @@ function InlineText({ text }: { text: string }) {
 
 const issueLink = (repository: string, n: number) => `https://github.com/${repository}/issues/${n}`;
 
+/** Reports already posted on the PR, newest first, each linked to its comment. */
+function Reports({ pull }: { pull: PullSummary }) {
+  if (pull.reports === null) {
+    return <p className="reports__none">The comments couldn't be read in the last update, so earlier reports aren't shown.</p>;
+  }
+  if (pull.reports.length === 0) {
+    return <p className="reports__none">Nobody else has posted a test report yet.</p>;
+  }
+  const reports = [...pull.reports].sort((a, b) => b.createdAt.localeCompare(a.createdAt));
+  return (
+    <ul className="reports">
+      {reports.map((report) => (
+        <li key={report.url} className="reports__item" data-result={report.result}>
+          <span className="reports__result">{REPORT_RESULT_TEXT[report.result]}</span>
+          <span>
+            {REPORT_KIND_TEXT[report.kind]} by <strong>{report.author}</strong> {timeAgo(report.createdAt)}.{' '}
+            <a href={report.url} target="_blank" rel="noreferrer noopener">
+              Read the report
+            </a>
+          </span>
+        </li>
+      ))}
+    </ul>
+  );
+}
+
 export function PullDetail({ pull, repository, prefs, onPrefsChange, onBack }: Props) {
   const steps = testSteps(pull, prefs);
   const { testing } = pull;
+  const area = areaText(pull.area);
   const guide = pull.kind === 'sql-only' ? WIKI.howToTestDbOnly : WIKI.howToTestPr;
 
   return (
@@ -77,6 +104,22 @@ export function PullDetail({ pull, repository, prefs, onPrefsChange, onBack }: P
           {KIND_HINT[pull.kind]}
           {pull.kindSource === 'labels' && ' (Guessed from the labels: the changed files could not be read.)'}
         </p>
+        {(area || pull.topics.length > 0) && (
+          <dl className="detail__facts">
+            {area && (
+              <>
+                <dt>Code area</dt>
+                <dd>{area}</dd>
+              </>
+            )}
+            {pull.topics.length > 0 && (
+              <>
+                <dt>Linked issue</dt>
+                <dd>{pull.topics.map((topic) => topic.replace(/^(Class|Instance) - /, '')).join(', ')}</dd>
+              </>
+            )}
+          </dl>
+        )}
         <a className="button button--primary" href={pull.url} target="_blank" rel="noreferrer noopener">
           Open on GitHub
         </a>
@@ -202,6 +245,13 @@ export function PullDetail({ pull, repository, prefs, onPrefsChange, onBack }: P
 
         <li className="step">
           <h3 className="step__title">Post your report</h3>
+          <div className="reports-block">
+            <p className="field__label">Already posted</p>
+            <Reports pull={pull} />
+            {pull.reports && pull.reports.length > 0 && (
+              <p className="step__source">Another report on a different setup still helps the maintainers.</p>
+            )}
+          </div>
           <label className="field field--inline">
             <span className="field__label">Your OS</span>
             <input

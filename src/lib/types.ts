@@ -47,6 +47,30 @@ export interface TestingInfo {
   testedByOthers: boolean;
 }
 
+export type TestReportResult = 'works' | 'partial' | 'broken' | 'unknown';
+
+/** `in-game`: someone ran the PR. `sniffs`: someone checked it against packet captures of the original game. */
+export type TestReportKind = 'in-game' | 'sniffs';
+
+/** A comment on the PR, by someone other than its author, that reads as a test report. */
+export interface TestReport {
+  author: string;
+  /** Link to the comment itself (anchored). */
+  url: string;
+  createdAt: string;
+  kind: TestReportKind;
+  /** From the wording; `unknown` when the comment gives no verdict. */
+  result: TestReportResult;
+  /** Written with the hub's report generator. */
+  fromHub: boolean;
+}
+
+/** The scope of a conventional PR title: `fix(Scripts/Ulduar): ...` gives Scripts / Ulduar. */
+export interface CodeArea {
+  group: string;
+  topic: string | null;
+}
+
 export interface PullSummary {
   number: number;
   title: string;
@@ -64,9 +88,18 @@ export interface PullSummary {
   comments: number;
   issues: number[];
   testing: TestingInfo;
+  area: CodeArea | null;
+  /** Domain labels (class, instance, level range, topic) of the linked issues. */
+  topics: string[];
+  /** Test reports found in the comments. Null when the comments could not be read. */
+  reports: TestReport[] | null;
 }
 
+/** Bumped when the shape changes, so an older data.json is never reused as a cache. */
+export const SNAPSHOT_VERSION = 2;
+
 export interface Snapshot {
+  version: number;
   generatedAt: string;
   repository: string;
   pulls: PullSummary[];
