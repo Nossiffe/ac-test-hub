@@ -4,8 +4,8 @@
  */
 import { mkdir, writeFile } from 'node:fs/promises';
 import { REPOSITORY } from '../src/lib/config';
-import { toPullSummary, type SearchItem } from '../src/lib/transform';
-import type { Snapshot } from '../src/lib/types';
+import { fileInfo, toPullSummary, type SearchItem } from '../src/lib/transform';
+import { SNAPSHOT_VERSION, type Snapshot, type TestReport } from '../src/lib/types';
 import { filledTemplate, freeForm, noTestSection, reproInIssue, untouchedTemplate } from '../test/fixtures/bodies';
 
 const now = new Date('2026-10-15T20:00:00Z');
@@ -15,6 +15,24 @@ const sql = (n: number, db = 'world') => ({
   raw_url: `https://github.com/${REPOSITORY}/raw/sample/data/sql/updates/pending_db_${db}/rev_${n}.sql`,
 });
 const file = (path: string) => ({ filename: path, raw_url: `https://github.com/${REPOSITORY}/raw/sample/${path}` });
+const report = (number: number, author: string, days: number, result: TestReport['result'], kind: TestReport['kind'] = 'in-game'): TestReport => ({
+  author,
+  url: `https://github.com/${REPOSITORY}/pull/${number}#issuecomment-${number}${Math.round(days * 10)}`,
+  createdAt: daysAgo(days),
+  kind,
+  result,
+  fromHub: false,
+});
+
+/** Made-up reports and linked-issue labels, keyed by PR number. */
+const extras: Record<number, { reports?: TestReport[]; topics?: string[] }> = {
+  90001: { topics: ['61-64', 'Quest'] },
+  90002: { topics: ['Class - Death Knight', '80'], reports: [report(90002, 'stormrider', 2, 'works')] },
+  90004: { topics: ['Instance - Dungeon - Vanilla', '50-59'], reports: [report(90004, 'quelfrost', 5, 'broken'), report(90004, 'snifftracker', 4, 'unknown', 'sniffs')] },
+  90007: { topics: ['Loot', 'ChromieCraft Generic'] },
+  90008: { reports: [report(90008, 'stormrider', 8, 'works'), report(90008, 'oakenshield', 7, 'works')] },
+  90012: { topics: ['71-74', 'Quest'] },
+};
 
 const samples: Array<[Partial<SearchItem> & { number: number; title: string }, ReturnType<typeof sql>[] | null]> = [
   [{ number: 90001, title: 'fix(DB/SAI): Make the overseers call a nearby slave on aggro', labels: [{ name: 'DB' }, { name: 'Waiting to be Tested' }], body: filledTemplate, created_at: daysAgo(3), comments: 2 }, [sql(1)]],
@@ -32,6 +50,7 @@ const samples: Array<[Partial<SearchItem> & { number: number; title: string }, R
 ];
 
 const snapshot: Snapshot = {
+  version: SNAPSHOT_VERSION,
   generatedAt: now.toISOString(),
   repository: REPOSITORY,
   pulls: samples.map(([item, files], index) =>
@@ -47,7 +66,11 @@ const snapshot: Snapshot = {
         body: '',
         ...item,
       },
-      files,
+      {
+        files: files ? fileInfo(files) : null,
+        reports: item.draft ? null : (extras[item.number]?.reports ?? []),
+        topics: (extras[item.number]?.topics ?? []).filter((t) => t !== 'ChromieCraft Generic'),
+      },
       REPOSITORY,
     ),
   ),

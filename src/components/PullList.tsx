@@ -1,6 +1,6 @@
 import { wantsTesters } from '../lib/queue';
 import type { PullSummary } from '../lib/types';
-import { KIND_HINT, KIND_TEXT, STATUS_TEXT, timeAgo } from '../format';
+import { areaText, KIND_HINT, KIND_TEXT, reportsSummary, STATUS_TEXT, timeAgo } from '../format';
 
 interface Props {
   pulls: PullSummary[];
@@ -23,7 +23,10 @@ export function PullList({ pulls, selected, onSelect, onReset }: Props) {
 
   return (
     <ol className="pull-list">
-      {pulls.map((pull) => (
+      {pulls.map((pull) => {
+        const reports = reportsSummary(pull.reports);
+        const area = areaText(pull.area);
+        return (
         <li key={pull.number}>
           <a
             href={`#${pull.number}`}
@@ -47,14 +50,21 @@ export function PullList({ pulls, selected, onSelect, onReset }: Props) {
                 </span>
               )}
               {pull.status === 'open' && wantsTesters(pull) && <span className="tag" data-wanted>Asking for testers</span>}
+              {reports && (
+                <span className="tag" data-reports={reports.problem ? 'problem' : 'ok'}>
+                  {reports.problem ? `${reports.text}, problem found` : reports.text}
+                </span>
+              )}
               {!pull.testing.instructions && !pull.testing.reproStepsInIssue && <span className="tag" data-missing>No test steps</span>}
               <span className="pull-row__byline">
+                {area && <span className="pull-row__area">{area}</span>}
                 {pull.author.login}, {timeAgo(pull.createdAt)}
               </span>
             </span>
           </a>
         </li>
-      ))}
+        );
+      })}
     </ol>
   );
 }

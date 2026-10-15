@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useState } from 'react';
+import { normalizeSnapshot } from './lib/transform';
 import type { Snapshot } from './lib/types';
 
 export type SnapshotState =
@@ -12,7 +13,7 @@ async function fetchJson(url: string): Promise<Snapshot | null> {
   if (!response.ok) throw new Error(`${url} answered ${response.status}`);
   // Some hosts answer a missing file with an HTML page: treat it as missing.
   if (!response.headers.get('content-type')?.includes('json')) return null;
-  return (await response.json()) as Snapshot;
+  return normalizeSnapshot((await response.json()) as Snapshot);
 }
 
 /**

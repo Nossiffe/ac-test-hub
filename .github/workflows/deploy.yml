@@ -1,12 +1,22 @@
 name: Snapshot and deploy
 
-# Rebuilds the site with fresh data every hour, and on every push to main.
+# Rebuilds the site with fresh data every 30 minutes, and on every push to main.
 on:
   schedule:
-    - cron: '17 * * * *' # UTC, off the top of the hour when GitHub is busiest
+    # UTC, off the top of the hour when GitHub is busiest. Only PRs that
+    # changed since the last snapshot are fetched again.
+    - cron: '7,37 * * * *'
+    # Once a day, fetch everything again, so labels added to linked issues
+    # since a PR last changed are picked up too.
+    - cron: '22 3 * * *'
   push:
     branches: [main]
   workflow_dispatch:
+    inputs:
+      full_refresh:
+        description: Fetch every PR again instead of reusing the last snapshot
+        type: boolean
+        default: false
 
 permissions:
   contents: read
@@ -31,17 +41,24 @@ jobs:
       - run: npm ci
       - run: npm test
 
-      # Reads public data only. The workflow token raises the API limit to
-      # 1,000 requests an hour; one snapshot needs about one per open PR.
-      # If this step fails, nothing is deployed and the last site stays up.
+      # Gives the address of the published site, where the last data.json lives.
+      - id: pages
+        uses: actions/configure-pages@v6
+
+      # Reads public data only. The workflow token allows 1,000 REST requests
+      # an hour. A full snapshot needs about two per open PR (files, comments)
+      # plus one per linked issue; an incremental one only does that for the
+      # PRs that changed. If this step fails, nothing is deployed and the last
+      # site stays up.
       - name: Snapshot open pull requests
         run: npm run snapshot
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          PREVIOUS_SNAPSHOT_URL: ${{ steps.pages.outputs.base_url }}/data.json
+          FULL_REFRESH: ${{ github.event.schedule == '22 3 * * *' || inputs.full_refresh == true }}
 
       - run: npm run build
 
-      - uses: actions/configure-pages@v6
       - uses: actions/upload-pages-artifact@v5
         with:
           path: dist

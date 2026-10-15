@@ -5,19 +5,20 @@ import { QueueFilters } from './components/QueueFilters';
 import { timeAgo } from './format';
 import { useHashSelection, useSnapshot, useStoredState } from './hooks';
 import { WIKI } from './lib/config';
-import { DEFAULT_FILTERS, filterPulls, sortPulls, wantsTesters, type QueueFilters as Filters, type SortKey } from './lib/queue';
+import { DEFAULT_FILTERS, domainOptions, filterPulls, reportCount, sortPulls, wantsTesters, type QueueFilters as Filters, type SortKey } from './lib/queue';
 import type { Snapshot } from './lib/types';
 
 const DEFAULT_PREFS: ServerPrefs = { setup: 'docker', fork: false, os: '' };
 
 function Summary({ snapshot }: { snapshot: Snapshot }) {
-  const labelled = snapshot.pulls.filter((p) => p.status === 'waiting').length;
-  const asking = snapshot.pulls.filter((p) => wantsTesters(p) && p.status !== 'waiting').length;
+  const wanted = snapshot.pulls.filter(wantsTesters);
+  const labelled = wanted.filter((p) => p.status === 'waiting').length;
+  const unreported = wanted.filter((p) => reportCount(p) === 0).length;
   return (
     <p className="masthead__lede">
-      {asking + labelled} open pull requests are asking for testers
-      {labelled > 0 && `, ${labelled} of them labelled “Waiting to be Tested”`}. Pick one, run it on your server, post what you
-      saw.
+      {wanted.length} open pull requests are asking for testers
+      {labelled > 0 && ` (${labelled} labelled “Waiting to be Tested”)`}, and {unreported} of them have no report yet. Pick one,
+      run it on your server, post what you saw.
     </p>
   );
 }
@@ -30,6 +31,11 @@ function Hub({ snapshot, sample }: { snapshot: Snapshot; sample: boolean }) {
   const detailRef = useRef<HTMLDivElement>(null);
 
   const visible = useMemo(() => sortPulls(filterPulls(snapshot.pulls, filters), sort.key), [snapshot, filters, sort.key]);
+  // Counts follow the other filters, so each choice says how many PRs it would show.
+  const domains = useMemo(
+    () => domainOptions(filterPulls(snapshot.pulls, { ...filters, domain: '' }), filters.domain),
+    [snapshot, filters],
+  );
   const current = snapshot.pulls.find((p) => p.number === selected) ?? null;
 
   // On wide screens, open the first PR so the page never starts empty.
@@ -75,6 +81,7 @@ function Hub({ snapshot, sample }: { snapshot: Snapshot; sample: boolean }) {
           onSortChange={(key) => setSort({ key })}
           shown={visible.length}
           total={snapshot.pulls.length}
+          domains={domains}
         />
         <PullList pulls={visible} selected={selected} onSelect={select} onReset={() => setFilters(DEFAULT_FILTERS)} />
       </aside>
@@ -97,7 +104,7 @@ function Hub({ snapshot, sample }: { snapshot: Snapshot; sample: boolean }) {
       </main>
 
       <footer className="colophon">
-        A community tool, not run by the AzerothCore team. Data from the GitHub API, refreshed every hour.
+        A community tool, not run by the AzerothCore team. Data from the GitHub API, refreshed every 30 minutes.
       </footer>
     </div>
   );

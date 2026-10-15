@@ -17,6 +17,9 @@ export function makePull({ testing, ...overrides }: PullOverrides): PullSummary 
     sqlFiles: [],
     comments: 0,
     issues: [],
+    area: null,
+    topics: [],
+    reports: [],
     ...overrides,
     testing: {
       instructions: '1. Do it.',

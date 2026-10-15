@@ -1,4 +1,4 @@
-import type { ChangeKind, PullStatus } from './lib/types';
+import type { ChangeKind, CodeArea, PullStatus, TestReport, TestReportKind, TestReportResult } from './lib/types';
 
 const relative = new Intl.RelativeTimeFormat('en', { numeric: 'auto' });
 
@@ -41,3 +41,26 @@ export const KIND_HINT: Record<ChangeKind, string> = {
   build: 'C++ or CMake changes: the server must be rebuilt.',
   other: 'No C++ change, and not only SQL: tooling, configuration, tests…',
 };
+
+export const REPORT_RESULT_TEXT: Record<TestReportResult, string> = {
+  works: 'Works',
+  partial: 'Partly works',
+  broken: 'Problem found',
+  unknown: 'No verdict',
+};
+
+export const REPORT_KIND_TEXT: Record<TestReportKind, string> = {
+  'in-game': 'Tested in game',
+  sniffs: 'Checked against sniffs',
+};
+
+/** Short text for the list: "2 reports", plus whether one of them found a problem. */
+export function reportsSummary(reports: TestReport[] | null): { text: string; problem: boolean } | null {
+  if (!reports || reports.length === 0) return null;
+  return {
+    text: `${reports.length} report${reports.length > 1 ? 's' : ''}`,
+    problem: reports.some((report) => report.result === 'broken'),
+  };
+}
+
+export const areaText = (area: CodeArea | null) => (area ? `${area.group}${area.topic ? ` / ${area.topic}` : ''}` : null);
