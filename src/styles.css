@@ -155,6 +155,7 @@ code {
   }
   .queue,
   .detail-pane {
+    position: relative;
     overflow-y: auto;
     overscroll-behavior: contain;
   }
@@ -331,9 +332,20 @@ fieldset {
   margin-bottom: 0.2rem;
 }
 
+/*
+ * The radio hides under its label. The label holds it (position: relative): left to the page, the
+ * hidden input sat where it would have been without the scrolling panes, below the window, and made
+ * the whole page scroll away from the masthead.
+ */
+.segmented__option,
+.choice__option {
+  position: relative;
+}
+
 .segmented__option input,
 .choice__option input {
   position: absolute;
+  inset: 0;
   opacity: 0;
   pointer-events: none;
 }
