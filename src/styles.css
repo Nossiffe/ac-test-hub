@@ -164,6 +164,26 @@ code {
     overflow-y: auto;
     overscroll-behavior: contain;
   }
+  /*
+   * The filters stay in view and only the list of pull requests scrolls, under them: its scroll bar
+   * no longer runs beside the filters, and the wheel over the filters leaves the list alone.
+   */
+  .queue {
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+  }
+  .queue > .filters {
+    flex: none;
+  }
+  .queue > .pull-list,
+  .queue > .empty {
+    position: relative;
+    flex: 1;
+    min-height: 0;
+    overflow-y: auto;
+    overscroll-behavior: contain;
+  }
   .queue {
     border-right: 1px solid var(--line);
   }
@@ -242,14 +262,6 @@ code {
   padding: 1rem var(--gutter) 0.9rem;
   border-bottom: 1px solid var(--line);
   background: var(--bg);
-}
-
-@media (min-width: 960px) {
-  .filters {
-    position: sticky;
-    top: 0;
-    z-index: 1;
-  }
 }
 
 .filters__row {
